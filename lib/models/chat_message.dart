@@ -1,9 +1,5 @@
 class ChatMessage {
-  const ChatMessage({
-    required this.text,
-    required this.fromUser,
-    this.route,
-  });
+  const ChatMessage({required this.text, required this.fromUser, this.route});
 
   final String text;
   final bool fromUser;

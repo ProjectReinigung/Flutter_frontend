@@ -40,24 +40,29 @@ class AuthController extends ChangeNotifier {
     required String backend,
     required String username,
     required String password,
-    String keycloakBase = AppConfig.defaultKeycloakUrl,
-    String realm = AppConfig.keycloakRealm,
-    String clientId = AppConfig.keycloakClientId,
+    String? keycloakBase,
+    String? realm,
+    String? clientId,
   }) async {
     loading = true;
     notifyListeners();
     try {
+      final normalizedKeycloakBase =
+          (keycloakBase ?? AppConfig.defaultKeycloakUrl).replaceAll(
+            RegExp(r'/$'),
+            '',
+          );
       await tokenStorage.saveBackendUrl(backend);
       backendUrl = backend.replaceAll(RegExp(r'/$'), '');
       final tokenUri = Uri.parse(
-        '$keycloakBase/realms/$realm/protocol/openid-connect/token',
+        '$normalizedKeycloakBase/realms/${realm ?? AppConfig.keycloakRealm}/protocol/openid-connect/token',
       );
       final response = await http.post(
         tokenUri,
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
           'grant_type': 'password',
-          'client_id': clientId,
+          'client_id': clientId ?? AppConfig.keycloakClientId,
           'username': username,
           'password': password,
         },

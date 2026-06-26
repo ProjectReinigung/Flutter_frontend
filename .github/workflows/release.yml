@@ -1,0 +1,80 @@
+name: Build Release Artifacts
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Android APK
+        run: >
+          flutter build apk --release
+          --dart-define=APP_ENV=production
+          --dart-define=API_BASE_URL=https://api.karakheti.de
+          --dart-define=KEYCLOAK_URL=https://auth.karakheti.de
+          --dart-define=KEYCLOAK_REALM=cleaning-system
+          --dart-define=KEYCLOAK_CLIENT_ID=cleaning-system-frontend
+          --dart-define=REDIRECT_URL=https://projectreinigung.github.io/Flutter_frontend/
+
+      - name: Rename APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk cleaning-app-android.apk
+
+      - name: Upload APK to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: cleaning-app-android.apk
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows app
+        run: >
+          flutter build windows --release
+          --dart-define=APP_ENV=production
+          --dart-define=API_BASE_URL=https://api.karakheti.de
+          --dart-define=KEYCLOAK_URL=https://auth.karakheti.de
+          --dart-define=KEYCLOAK_REALM=cleaning-system
+          --dart-define=KEYCLOAK_CLIENT_ID=cleaning-system-frontend
+          --dart-define=REDIRECT_URL=https://projectreinigung.github.io/Flutter_frontend/
+
+      - name: Zip Windows app
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath cleaning-app-windows.zip
+
+      - name: Upload Windows zip to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: cleaning-app-windows.zip
