@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class CameraCaptureWidget extends StatefulWidget {
   const CameraCaptureWidget({super.key});
@@ -125,6 +126,8 @@ class _CameraCaptureWidgetState extends State<CameraCaptureWidget> {
       error = null;
     });
     try {
+      final allowed = await _ensureCameraPermission();
+      if (!allowed) return;
       final picked = await picker.pickImage(
         source: ImageSource.camera,
         imageQuality: 78,
@@ -141,6 +144,29 @@ class _CameraCaptureWidgetState extends State<CameraCaptureWidget> {
     } finally {
       if (mounted) setState(() => capturing = false);
     }
+  }
+
+  Future<bool> _ensureCameraPermission() async {
+    if (kIsWeb) return true;
+    final status = await Permission.camera.status;
+    if (status.isGranted || status.isLimited) return true;
+
+    final requested = await Permission.camera.request();
+    if (requested.isGranted || requested.isLimited) return true;
+
+    if (requested.isPermanentlyDenied) {
+      setState(() {
+        error =
+            'Camera permission is blocked. Enable it in system settings to take photos.';
+      });
+      await openAppSettings();
+      return false;
+    }
+
+    setState(() {
+      error = 'Camera permission is required to take task review photos.';
+    });
+    return false;
   }
 
   String _cameraErrorMessage(Object error) {
