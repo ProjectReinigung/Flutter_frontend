@@ -18,8 +18,17 @@ class AuthController extends ChangeNotifier {
   AppUser? user;
   String backendUrl = AppConfig.defaultBackendUrl;
   bool loading = false;
+  final Map<int, List<Uint8List>> _pendingTaskImages = {};
 
   bool get isAuthenticated => user != null;
+
+  List<Uint8List> pendingImagesForTask(int taskId) {
+    return _pendingTaskImages.putIfAbsent(taskId, () => <Uint8List>[]);
+  }
+
+  void clearPendingImagesForTask(int taskId) {
+    _pendingTaskImages.remove(taskId)?.clear();
+  }
 
   Future<void> restore() async {
     backendUrl = await tokenStorage.readBackendUrl();
@@ -128,6 +137,7 @@ class AuthController extends ChangeNotifier {
 
   Future<void> logout() async {
     await tokenStorage.clearToken();
+    _pendingTaskImages.clear();
     user = null;
     notifyListeners();
   }

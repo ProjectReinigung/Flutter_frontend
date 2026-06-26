@@ -37,7 +37,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   late Future<List<TaskImage>> images = TaskImagesApi(
     widget.authController.apiClient,
   ).forTask(task.id);
-  final pendingImages = <Uint8List>[];
+  late final pendingImages = widget.authController.pendingImagesForTask(
+    task.id,
+  );
   bool busy = false;
   bool submittingReview = false;
   int? deletingImageId;
@@ -271,30 +273,18 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       builder: (context) => Dialog(
         insetPadding: const EdgeInsets.all(20),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900, maxHeight: 720),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  tooltip: 'Close',
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
+          constraints: const BoxConstraints(maxWidth: 720, maxHeight: 720),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: InteractiveViewer(
+                child: TaskImagePreview(
+                  base64Data: image.imageData,
+                  fit: BoxFit.contain,
                 ),
               ),
-              Flexible(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: InteractiveViewer(
-                    child: AspectRatio(
-                      aspectRatio: 4 / 3,
-                      child: TaskImagePreview(base64Data: image.imageData),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -307,33 +297,18 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       builder: (context) => Dialog(
         insetPadding: const EdgeInsets.all(20),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900, maxHeight: 720),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  tooltip: 'Close',
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
+          constraints: const BoxConstraints(maxWidth: 720, maxHeight: 720),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: InteractiveViewer(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.memory(bytes, fit: BoxFit.contain),
                 ),
               ),
-              Flexible(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: InteractiveViewer(
-                    child: AspectRatio(
-                      aspectRatio: 4 / 3,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.memory(bytes, fit: BoxFit.contain),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -384,7 +359,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       if (mounted) {
         setState(() {
           task = updatedTask;
-          pendingImages.clear();
+          widget.authController.clearPendingImagesForTask(task.id);
           submittingReview = false;
           success = 'Review submitted successfully.';
         });

@@ -72,6 +72,7 @@ class CleaningTask {
     'taskId': id == 0 ? null : id,
     'title': title,
     'description': description,
+    'status': status.apiName,
     'assignedTo': assignedTo,
     'assignedBy': assignedBy,
     if (location != null) 'location': location,
