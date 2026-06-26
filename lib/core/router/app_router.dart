@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../features/auth/login_screen.dart';
 import '../../core/settings/app_settings_controller.dart';
-import '../../features/account/account_screen.dart';
 import '../../features/chat/chat_screen.dart';
 import '../../features/dashboard/admin_dashboard_screen.dart';
 import '../../features/dashboard/worker_dashboard_screen.dart';
@@ -66,21 +65,25 @@ class _AppRouterState extends State<AppRouter> {
       'worker_home' => WorkerDashboardScreen(
         key: ValueKey('worker-$refreshVersion'),
         authController: auth,
+        mode: WorkerDashboardMode.overview,
         onOpenTask: (task) => setState(() => selectedTask = task),
       ),
       'worker_tasks' => WorkerDashboardScreen(
         key: ValueKey('worker-tasks-$refreshVersion'),
         authController: auth,
+        mode: WorkerDashboardMode.tasks,
         onOpenTask: (task) => setState(() => selectedTask = task),
       ),
       'admin_home' => AdminDashboardScreen(
         key: ValueKey('admin-$refreshVersion'),
         authController: auth,
+        mode: AdminDashboardMode.overview,
         onOpenTask: (task) => setState(() => selectedTask = task),
       ),
       'admin_tasks' => AdminDashboardScreen(
         key: ValueKey('admin-tasks-$refreshVersion'),
         authController: auth,
+        mode: AdminDashboardMode.tasks,
         onOpenTask: (task) => setState(() => selectedTask = task),
       ),
       'reviews' => AdminReviewScreen(
@@ -91,9 +94,13 @@ class _AppRouterState extends State<AppRouter> {
       'users' => UserManagementScreen(authController: auth),
       'chat' => ChatScreen(authController: auth),
       'settings' => SettingsScreen(
+        authController: auth,
         settingsController: widget.settingsController,
       ),
-      _ => AccountScreen(authController: auth),
+      _ => SettingsScreen(
+        authController: auth,
+        settingsController: widget.settingsController,
+      ),
     };
   }
 
@@ -104,16 +111,16 @@ class _AppRouterState extends State<AppRouter> {
         AppNavItem('worker_tasks', 'Tasks', Icons.cleaning_services_outlined),
         AppNavItem('chat', 'Chat', Icons.chat_bubble_outline),
         AppNavItem('settings', 'Settings', Icons.tune_outlined),
-        AppNavItem('account', 'Account', Icons.account_circle_outlined),
       ];
     }
     if (role == UserRole.owner) {
       return const [
         AppNavItem('admin_home', 'Dashboard', Icons.dashboard_outlined),
+        AppNavItem('admin_tasks', 'Tasks', Icons.assignment_outlined),
+        AppNavItem('reviews', 'Reviews', Icons.fact_check_outlined),
         AppNavItem('users', 'Users', Icons.groups_outlined),
         AppNavItem('chat', 'Chat', Icons.chat_bubble_outline),
         AppNavItem('settings', 'Settings', Icons.tune_outlined),
-        AppNavItem('account', 'Account', Icons.account_circle_outlined),
       ];
     }
     return const [
@@ -123,7 +130,6 @@ class _AppRouterState extends State<AppRouter> {
       AppNavItem('users', 'Users', Icons.groups_outlined),
       AppNavItem('chat', 'Chat', Icons.chat_bubble_outline),
       AppNavItem('settings', 'Settings', Icons.tune_outlined),
-      AppNavItem('account', 'Account', Icons.account_circle_outlined),
     ];
   }
 }

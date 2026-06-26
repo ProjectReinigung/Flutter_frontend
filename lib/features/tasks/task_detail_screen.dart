@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../core/auth/auth_controller.dart';
 import '../../core/network/services.dart';
@@ -9,6 +8,7 @@ import '../../models/task.dart';
 import '../../models/task_image.dart';
 import '../../models/user.dart';
 import '../../shared/widgets/async_state.dart';
+import '../../shared/widgets/camera_capture_widget.dart';
 import '../../shared/widgets/confirmation_dialog.dart';
 import '../../shared/widgets/image_preview.dart';
 import '../../shared/widgets/status_badge.dart';
@@ -67,12 +67,20 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 label: const Text('Back'),
               ),
             ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Expanded(
+                ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: 220,
+                    maxWidth: 720,
+                  ),
                   child: Text(
                     task.title,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                 ),
@@ -84,6 +92,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
               task.description.isEmpty
                   ? 'No description provided.'
                   : task.description,
+              softWrap: true,
             ),
             const SizedBox(height: 20),
             Wrap(
@@ -125,14 +134,14 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 ),
                 if (!isAdmin)
                   OutlinedButton.icon(
-                    onPressed: busy ? null : _uploadImage,
+                    onPressed: busy ? null : _captureImage,
                     icon: uploadingImage
                         ? const SizedBox.square(
                             dimension: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.add_photo_alternate_outlined),
-                    label: Text(uploadingImage ? 'Uploading' : 'Upload image'),
+                        : const Icon(Icons.photo_camera_outlined),
+                    label: Text(uploadingImage ? 'Uploading' : 'Take photo'),
                   ),
               ],
             ),
@@ -151,8 +160,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
               const SizedBox(
                 height: 180,
                 child: EmptyView(
-                  title: 'No images uploaded',
-                  subtitle: 'Worker uploads will appear as review evidence.',
+                  title: 'No photos captured',
+                  subtitle:
+                      'Worker camera photos will appear as review evidence.',
                   icon: Icons.image_outlined,
                 ),
               )
@@ -216,7 +226,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     );
   }
 
-  Future<void> _uploadImage() async {
+  Future<void> _captureImage() async {
+    final bytes = await CameraCaptureWidget.show(context);
+    if (bytes == null) return;
     setState(() {
       busy = true;
       uploadingImage = true;
@@ -224,19 +236,8 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       success = null;
     });
     try {
-      final picked = await ImagePicker().pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 78,
-      );
-      if (picked == null) {
-        setState(() => error = 'Choose an image before uploading.');
-        return;
-      }
-      final bytes = await picked.readAsBytes();
       if (bytes.isEmpty) {
-        setState(
-          () => error = 'The selected image is empty. Choose another image.',
-        );
+        setState(() => error = 'The captured photo is empty. Retake it.');
         return;
       }
       final loadedImages = await images;
@@ -251,7 +252,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       task = await TasksApi(widget.authController.apiClient).task(task.id);
       widget.onTaskChanged();
       if (mounted) {
-        setState(() => success = 'Image uploaded successfully.');
+        setState(() => success = 'Photo uploaded successfully.');
       }
       _reloadImages();
     } catch (e) {
@@ -439,7 +440,7 @@ class _InfoTile extends StatelessWidget {
         child: ListTile(
           leading: Icon(icon),
           title: Text(label),
-          subtitle: Text(value),
+          subtitle: Text(value, maxLines: 2, overflow: TextOverflow.ellipsis),
         ),
       ),
     );

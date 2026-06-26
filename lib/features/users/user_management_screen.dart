@@ -111,63 +111,16 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               for (final user in users)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: Card(
-                    color: Theme.of(context).colorScheme.surfaceContainerLow,
-                    child: ListTile(
-                      leading: CircleAvatar(child: Text(_initials(user))),
-                      title: Text(
-                        user.fullName.isEmpty ? user.username : user.fullName,
-                      ),
-                      subtitle: Text(
-                        [
-                          user.email,
-                          user.enabled ? 'Active' : 'Inactive',
-                        ].whereType<String>().join(' - '),
-                      ),
-                      trailing: Wrap(
-                        spacing: 8,
-                        children: [
-                          RoleBadge(role: user.role),
-                          if (isAdmin) ...[
-                            IconButton(
-                              onPressed: _userActionBusy
-                                  ? null
-                                  : () => _showUserDialog(user),
-                              icon: const Icon(Icons.edit_outlined),
-                              tooltip: 'Edit',
-                            ),
-                            IconButton(
-                              onPressed: _userActionBusy
-                                  ? null
-                                  : () => _showResetPasswordDialog(user),
-                              icon: resettingUserId == user.id
-                                  ? const SizedBox.square(
-                                      dimension: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.lock_reset_outlined),
-                              tooltip: 'Reset password',
-                            ),
-                            IconButton(
-                              onPressed: _userActionBusy
-                                  ? null
-                                  : () => _confirmDelete(user),
-                              icon: deletingUserId == user.id
-                                  ? const SizedBox.square(
-                                      dimension: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.delete_outline),
-                              tooltip: 'Delete',
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
+                  child: _UserCard(
+                    user: user,
+                    initials: _initials(user),
+                    isAdmin: isAdmin,
+                    busy: _userActionBusy,
+                    resetting: resettingUserId == user.id,
+                    deleting: deletingUserId == user.id,
+                    onEdit: () => _showUserDialog(user),
+                    onResetPassword: () => _showResetPasswordDialog(user),
+                    onDelete: () => _confirmDelete(user),
                   ),
                 ),
           ],
@@ -569,5 +522,128 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       return 'Add at least one number.';
     }
     return null;
+  }
+}
+
+class _UserCard extends StatelessWidget {
+  const _UserCard({
+    required this.user,
+    required this.initials,
+    required this.isAdmin,
+    required this.busy,
+    required this.resetting,
+    required this.deleting,
+    required this.onEdit,
+    required this.onResetPassword,
+    required this.onDelete,
+  });
+
+  final AppUser user;
+  final String initials;
+  final bool isAdmin;
+  final bool busy;
+  final bool resetting;
+  final bool deleting;
+  final VoidCallback onEdit;
+  final VoidCallback onResetPassword;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 560;
+            final identity = Row(
+              children: [
+                CircleAvatar(child: Text(initials)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user.fullName.isEmpty ? user.username : user.fullName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      Text(
+                        user.email ?? user.username,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        user.enabled ? 'Active' : 'Inactive',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+            final actions = Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                RoleBadge(role: user.role),
+                if (isAdmin) ...[
+                  IconButton(
+                    onPressed: busy ? null : onEdit,
+                    icon: const Icon(Icons.edit_outlined),
+                    tooltip: 'Edit',
+                  ),
+                  IconButton(
+                    onPressed: busy ? null : onResetPassword,
+                    icon: resetting
+                        ? const SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.lock_reset_outlined),
+                    tooltip: 'Reset password',
+                  ),
+                  IconButton(
+                    onPressed: busy ? null : onDelete,
+                    icon: deleting
+                        ? const SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.delete_outline),
+                    tooltip: 'Delete',
+                  ),
+                ],
+              ],
+            );
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [identity, const SizedBox(height: 12), actions],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: identity),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: actions,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 }

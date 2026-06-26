@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -32,15 +33,22 @@ jobs:
           --dart-define=KEYCLOAK_URL=https://auth.karakheti.de
           --dart-define=KEYCLOAK_REALM=cleaning-system
           --dart-define=KEYCLOAK_CLIENT_ID=cleaning-system-local
-          --dart-define=REDIRECT_URL=https://projectreinigung.github.io/Flutter_frontend/
+          --dart-define=REDIRECT_URL=https://app.karakheti.de/
 
       - name: Rename APK
         run: cp build/app/outputs/flutter-apk/app-release.apk cleaning-app-android.apk
 
       - name: Upload APK to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: cleaning-app-android.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cleaning-app-android
+          path: cleaning-app-android.apk
 
   windows:
     runs-on: windows-latest
@@ -68,13 +76,20 @@ jobs:
           --dart-define=KEYCLOAK_URL=https://auth.karakheti.de
           --dart-define=KEYCLOAK_REALM=cleaning-system
           --dart-define=KEYCLOAK_CLIENT_ID=cleaning-system-local
-          --dart-define=REDIRECT_URL=https://projectreinigung.github.io/Flutter_frontend/
+          --dart-define=REDIRECT_URL=https://app.karakheti.de/
 
       - name: Zip Windows app
         shell: pwsh
         run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath cleaning-app-windows.zip
 
       - name: Upload Windows zip to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: cleaning-app-windows.zip
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cleaning-app-windows
+          path: cleaning-app-windows.zip

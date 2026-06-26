@@ -41,10 +41,11 @@ jobs:
           --dart-define=KEYCLOAK_URL=https://auth.karakheti.de
           --dart-define=KEYCLOAK_REALM=cleaning-system
           --dart-define=KEYCLOAK_CLIENT_ID=cleaning-system-local
-          --dart-define=REDIRECT_URL=https://projectreinigung.github.io/Flutter_frontend/
+          --dart-define=REDIRECT_URL=https://app.karakheti.de/
 
       - name: Add GitHub Pages SPA fallback
         run: |
+          echo "app.karakheti.de" > build/web/CNAME
           cp build/web/index.html build/web/404.html
           touch build/web/.nojekyll
 

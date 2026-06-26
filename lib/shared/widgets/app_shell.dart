@@ -37,6 +37,7 @@ class _AppShellState extends State<AppShell> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 760;
+        final compactBottomLabels = constraints.maxWidth < 430;
         return Scaffold(
           body: Row(
             children: [
@@ -56,6 +57,9 @@ class _AppShellState extends State<AppShell> {
           bottomNavigationBar: wide
               ? null
               : NavigationBar(
+                  labelBehavior: compactBottomLabels
+                      ? NavigationDestinationLabelBehavior.alwaysHide
+                      : NavigationDestinationLabelBehavior.onlyShowSelected,
                   selectedIndex: widget.currentIndex,
                   onDestinationSelected: widget.onSelect,
                   destinations: [
@@ -92,8 +96,6 @@ class _Sidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final accountIndex = items.indexWhere((item) => item.key == 'account');
-    final navItems = items.where((item) => item.key != 'account').toList();
     return Container(
       width: collapsed ? 82 : 264,
       color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
@@ -140,7 +142,7 @@ class _Sidebar extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 24),
-          for (final item in navItems)
+          for (final item in items)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: NavigationDrawerDestination(
@@ -152,29 +154,31 @@ class _Sidebar extends StatelessWidget {
               ),
             ),
           const Spacer(),
-          if (accountIndex >= 0)
-            Material(
-              color: currentIndex == accountIndex
-                  ? scheme.primaryContainer
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-              child: ListTile(
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: collapsed ? 8 : 12,
-                ),
-                leading: CircleAvatar(child: Text(_initial(user))),
-                title: collapsed
-                    ? null
-                    : Text(
-                        user.fullName.isEmpty ? user.username : user.fullName,
-                      ),
-                subtitle: collapsed
-                    ? null
-                    : Text(user.email ?? user.role.label),
-                onTap: () => onSelect(accountIndex),
-                titleAlignment: ListTileTitleAlignment.center,
+          Material(
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(8),
+            child: ListTile(
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: collapsed ? 8 : 12,
               ),
+              leading: CircleAvatar(child: Text(_initial(user))),
+              title: collapsed
+                  ? null
+                  : Text(
+                      user.fullName.isEmpty ? user.username : user.fullName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+              subtitle: collapsed
+                  ? null
+                  : Text(
+                      user.email ?? user.role.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+              titleAlignment: ListTileTitleAlignment.center,
             ),
+          ),
         ],
       ),
     );

@@ -4,9 +4,15 @@ import '../../models/task.dart';
 import 'status_badge.dart';
 
 class TaskCard extends StatelessWidget {
-  const TaskCard({super.key, required this.task, required this.onTap});
+  const TaskCard({
+    super.key,
+    required this.task,
+    required this.onTap,
+    this.dense = false,
+  });
   final CleaningTask task;
   final VoidCallback onTap;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -21,12 +27,20 @@ class TaskCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Expanded(
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minWidth: 160,
+                      maxWidth: 620,
+                    ),
                     child: Text(
                       task.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
@@ -40,30 +54,32 @@ class TaskCard extends StatelessWidget {
                 task.description.isEmpty
                     ? 'No description provided.'
                     : task.description,
-                maxLines: 2,
+                maxLines: dense ? 1 : 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                children: [
-                  _Meta(
-                    icon: Icons.place_outlined,
-                    text: task.location ?? 'No location provided',
-                  ),
-                  _Meta(
-                    icon: Icons.schedule_outlined,
-                    text:
-                        task.dueDate?.toLocal().toString().split('.').first ??
-                        'No due date',
-                  ),
-                  _Meta(
-                    icon: Icons.flag_outlined,
-                    text: task.priority ?? 'No priority',
-                  ),
-                ],
-              ),
+              if (!dense) ...[
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    _Meta(
+                      icon: Icons.place_outlined,
+                      text: task.location ?? 'No location provided',
+                    ),
+                    _Meta(
+                      icon: Icons.schedule_outlined,
+                      text:
+                          task.dueDate?.toLocal().toString().split('.').first ??
+                          'No due date',
+                    ),
+                    _Meta(
+                      icon: Icons.flag_outlined,
+                      text: task.priority ?? 'No priority',
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -84,8 +100,14 @@ class _Meta extends StatelessWidget {
       children: [
         Icon(icon, size: 16),
         const SizedBox(width: 6),
-        Flexible(
-          child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 220),
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ),
       ],
     );
