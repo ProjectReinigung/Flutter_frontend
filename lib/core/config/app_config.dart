@@ -9,8 +9,7 @@ class AppConfig {
       'https://projectreinigung.github.io/Flutter_frontend/';
 
   static const defaultRealm = 'cleaning-system';
-  static const developmentClientId = 'cleaning-system-local';
-  static const productionClientId = 'cleaning-system-frontend';
+  static const defaultClientId = 'cleaning-system-local';
 
   static const _environment = String.fromEnvironment(
     'APP_ENV',
@@ -43,11 +42,8 @@ class AppConfig {
   static String get keycloakRealm =>
       _realmOverride.isNotEmpty ? _realmOverride : defaultRealm;
 
-  static String get keycloakClientId => _clientIdOverride.isNotEmpty
-      ? _clientIdOverride
-      : isProduction
-      ? productionClientId
-      : developmentClientId;
+  static String get keycloakClientId =>
+      _clientIdOverride.isNotEmpty ? _clientIdOverride : defaultClientId;
 
   static String get redirectUrl => _redirectUrlOverride.isNotEmpty
       ? _redirectUrlOverride

@@ -15,11 +15,11 @@ Production builds use Dart defines. The GitHub Actions workflows already pass:
 --dart-define=API_BASE_URL=https://api.karakheti.de
 --dart-define=KEYCLOAK_URL=https://auth.karakheti.de
 --dart-define=KEYCLOAK_REALM=cleaning-system
---dart-define=KEYCLOAK_CLIENT_ID=cleaning-system-frontend
+--dart-define=KEYCLOAK_CLIENT_ID=cleaning-system-local
 --dart-define=REDIRECT_URL=https://projectreinigung.github.io/Flutter_frontend/
 ```
 
-If the production Keycloak client has a different client ID, update `KEYCLOAK_CLIENT_ID` in both workflows and in your local production build command.
+If the production Keycloak client has a different client ID, update `KEYCLOAK_CLIENT_ID` in both workflows and in your local production build command. The client must be public, or the password login flow must be changed to avoid storing a client secret in the frontend.
 
 ## GitHub Pages
 

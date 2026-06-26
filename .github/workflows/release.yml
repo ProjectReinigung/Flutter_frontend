@@ -31,7 +31,7 @@ jobs:
           --dart-define=API_BASE_URL=https://api.karakheti.de
           --dart-define=KEYCLOAK_URL=https://auth.karakheti.de
           --dart-define=KEYCLOAK_REALM=cleaning-system
-          --dart-define=KEYCLOAK_CLIENT_ID=cleaning-system-frontend
+          --dart-define=KEYCLOAK_CLIENT_ID=cleaning-system-local
           --dart-define=REDIRECT_URL=https://projectreinigung.github.io/Flutter_frontend/
 
       - name: Rename APK
@@ -67,7 +67,7 @@ jobs:
           --dart-define=API_BASE_URL=https://api.karakheti.de
           --dart-define=KEYCLOAK_URL=https://auth.karakheti.de
           --dart-define=KEYCLOAK_REALM=cleaning-system
-          --dart-define=KEYCLOAK_CLIENT_ID=cleaning-system-frontend
+          --dart-define=KEYCLOAK_CLIENT_ID=cleaning-system-local
           --dart-define=REDIRECT_URL=https://projectreinigung.github.io/Flutter_frontend/
 
       - name: Zip Windows app
