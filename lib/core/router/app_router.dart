@@ -30,6 +30,7 @@ class AppRouter extends StatefulWidget {
 class _AppRouterState extends State<AppRouter> {
   int index = 0;
   int refreshVersion = 0;
+  bool showingSettings = false;
   CleaningTask? selectedTask;
 
   @override
@@ -44,11 +45,22 @@ class _AppRouterState extends State<AppRouter> {
       user: user,
       currentIndex: index,
       items: items,
-      onSelect: (value) => setState(() {
-        index = value;
+      settingsSelected: showingSettings,
+      onOpenSettings: () => setState(() {
+        showingSettings = true;
         selectedTask = null;
       }),
-      child: _screen(items[index].key, auth),
+      onSelect: (value) => setState(() {
+        index = value;
+        showingSettings = false;
+        selectedTask = null;
+      }),
+      child: showingSettings
+          ? SettingsScreen(
+              authController: auth,
+              settingsController: widget.settingsController,
+            )
+          : _screen(items[index].key, auth),
     );
   }
 
@@ -93,10 +105,6 @@ class _AppRouterState extends State<AppRouter> {
       ),
       'users' => UserManagementScreen(authController: auth),
       'chat' => ChatScreen(authController: auth),
-      'settings' => SettingsScreen(
-        authController: auth,
-        settingsController: widget.settingsController,
-      ),
       _ => SettingsScreen(
         authController: auth,
         settingsController: widget.settingsController,
@@ -110,7 +118,6 @@ class _AppRouterState extends State<AppRouter> {
         AppNavItem('worker_home', 'Dashboard', Icons.dashboard_outlined),
         AppNavItem('worker_tasks', 'Tasks', Icons.cleaning_services_outlined),
         AppNavItem('chat', 'Chat', Icons.chat_bubble_outline),
-        AppNavItem('settings', 'Settings', Icons.tune_outlined),
       ];
     }
     if (role == UserRole.owner) {
@@ -120,7 +127,6 @@ class _AppRouterState extends State<AppRouter> {
         AppNavItem('reviews', 'Reviews', Icons.fact_check_outlined),
         AppNavItem('users', 'Users', Icons.groups_outlined),
         AppNavItem('chat', 'Chat', Icons.chat_bubble_outline),
-        AppNavItem('settings', 'Settings', Icons.tune_outlined),
       ];
     }
     return const [
@@ -129,7 +135,6 @@ class _AppRouterState extends State<AppRouter> {
       AppNavItem('reviews', 'Reviews', Icons.fact_check_outlined),
       AppNavItem('users', 'Users', Icons.groups_outlined),
       AppNavItem('chat', 'Chat', Icons.chat_bubble_outline),
-      AppNavItem('settings', 'Settings', Icons.tune_outlined),
     ];
   }
 }

@@ -15,6 +15,8 @@ class AppShell extends StatefulWidget {
     required this.user,
     required this.currentIndex,
     required this.items,
+    required this.settingsSelected,
+    required this.onOpenSettings,
     required this.onSelect,
     required this.child,
   });
@@ -22,6 +24,8 @@ class AppShell extends StatefulWidget {
   final AppUser user;
   final int currentIndex;
   final List<AppNavItem> items;
+  final bool settingsSelected;
+  final VoidCallback onOpenSettings;
   final ValueChanged<int> onSelect;
   final Widget child;
 
@@ -46,7 +50,9 @@ class _AppShellState extends State<AppShell> {
                   user: widget.user,
                   items: widget.items,
                   currentIndex: widget.currentIndex,
+                  settingsSelected: widget.settingsSelected,
                   onSelect: widget.onSelect,
+                  onOpenSettings: widget.onOpenSettings,
                   collapsed: collapsed,
                   onToggleCollapsed: () =>
                       setState(() => collapsed = !collapsed),
@@ -56,19 +62,33 @@ class _AppShellState extends State<AppShell> {
           ),
           bottomNavigationBar: wide
               ? null
-              : NavigationBar(
-                  labelBehavior: compactBottomLabels
-                      ? NavigationDestinationLabelBehavior.alwaysHide
-                      : NavigationDestinationLabelBehavior.onlyShowSelected,
-                  selectedIndex: widget.currentIndex,
-                  onDestinationSelected: widget.onSelect,
-                  destinations: [
-                    for (final item in widget.items)
-                      NavigationDestination(
-                        icon: Icon(item.icon),
-                        label: item.label,
+              : SafeArea(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _AccountEntry(
+                        user: widget.user,
+                        selected: widget.settingsSelected,
+                        collapsed: false,
+                        onTap: widget.onOpenSettings,
                       ),
-                  ],
+                      NavigationBar(
+                        labelBehavior: compactBottomLabels
+                            ? NavigationDestinationLabelBehavior.alwaysHide
+                            : NavigationDestinationLabelBehavior
+                                  .onlyShowSelected,
+                        selectedIndex: widget.currentIndex,
+                        onDestinationSelected: widget.onSelect,
+                        destinations: [
+                          for (final item in widget.items)
+                            NavigationDestination(
+                              icon: Icon(item.icon),
+                              label: item.label,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
         );
       },
@@ -81,7 +101,9 @@ class _Sidebar extends StatelessWidget {
     required this.user,
     required this.items,
     required this.currentIndex,
+    required this.settingsSelected,
     required this.onSelect,
+    required this.onOpenSettings,
     required this.collapsed,
     required this.onToggleCollapsed,
   });
@@ -89,7 +111,9 @@ class _Sidebar extends StatelessWidget {
   final AppUser user;
   final List<AppNavItem> items;
   final int currentIndex;
+  final bool settingsSelected;
   final ValueChanged<int> onSelect;
+  final VoidCallback onOpenSettings;
   final bool collapsed;
   final VoidCallback onToggleCollapsed;
 
@@ -154,32 +178,67 @@ class _Sidebar extends StatelessWidget {
               ),
             ),
           const Spacer(),
-          Material(
-            color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(8),
-            child: ListTile(
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: collapsed ? 8 : 12,
-              ),
-              leading: CircleAvatar(child: Text(_initial(user))),
-              title: collapsed
-                  ? null
-                  : Text(
-                      user.fullName.isEmpty ? user.username : user.fullName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-              subtitle: collapsed
-                  ? null
-                  : Text(
-                      user.email ?? user.role.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-              titleAlignment: ListTileTitleAlignment.center,
-            ),
+          _AccountEntry(
+            user: user,
+            selected: settingsSelected,
+            collapsed: collapsed,
+            onTap: onOpenSettings,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AccountEntry extends StatelessWidget {
+  const _AccountEntry({
+    required this.user,
+    required this.selected,
+    required this.collapsed,
+    required this.onTap,
+  });
+
+  final AppUser user;
+  final bool selected;
+  final bool collapsed;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: collapsed ? 0 : 8,
+        vertical: collapsed ? 0 : 6,
+      ),
+      child: Material(
+        color: selected
+            ? scheme.primaryContainer
+            : scheme.surfaceContainerHighest.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(8),
+        child: ListTile(
+          dense: collapsed,
+          contentPadding: EdgeInsets.symmetric(horizontal: collapsed ? 8 : 12),
+          leading: CircleAvatar(child: Text(_initial(user))),
+          title: collapsed
+              ? null
+              : Text(
+                  user.fullName.isEmpty ? user.username : user.fullName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+          subtitle: collapsed
+              ? null
+              : Text(
+                  user.email ?? user.role.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+          trailing: collapsed ? null : const Icon(Icons.tune_outlined),
+          selected: selected,
+          onTap: onTap,
+          titleAlignment: ListTileTitleAlignment.center,
+        ),
       ),
     );
   }

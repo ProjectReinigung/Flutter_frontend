@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -35,8 +37,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   late Future<List<TaskImage>> images = TaskImagesApi(
     widget.authController.apiClient,
   ).forTask(task.id);
+  final pendingImages = <Uint8List>[];
   bool busy = false;
-  bool uploadingImage = false;
+  bool submittingReview = false;
   int? deletingImageId;
   String? error;
   String? success;
@@ -51,11 +54,13 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         final loadedImages = snapshot.data ?? [];
         final canSubmit =
             task.status == TaskStatus.inProgress &&
-            loadedImages.isNotEmpty &&
+            (loadedImages.isNotEmpty || pendingImages.isNotEmpty) &&
             !isAdmin;
         final canComplete = task.status == TaskStatus.inReview && isAdmin;
         final canRemoveImages =
-            !isAdmin && task.status == TaskStatus.inProgress;
+            !isAdmin &&
+            task.status == TaskStatus.inProgress &&
+            !submittingReview;
         return ListView(
           padding: const EdgeInsets.all(20),
           children: [
@@ -95,35 +100,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
               softWrap: true,
             ),
             const SizedBox(height: 20),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _InfoTile(
-                  icon: Icons.place_outlined,
-                  label: 'Location',
-                  value: task.location ?? 'Not provided',
-                ),
-                _InfoTile(
-                  icon: Icons.flag_outlined,
-                  label: 'Priority',
-                  value: task.priority ?? 'Not provided',
-                ),
-                _InfoTile(
-                  icon: Icons.event_outlined,
-                  label: 'Due date',
-                  value:
-                      task.dueDate?.toLocal().toString().split('.').first ??
-                      'Not provided',
-                ),
-                _InfoTile(
-                  icon: Icons.person_outline,
-                  label: 'Worker id',
-                  value: '${task.assignedTo}',
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(
@@ -134,19 +110,15 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 ),
                 if (!isAdmin)
                   OutlinedButton.icon(
-                    onPressed: busy ? null : _captureImage,
-                    icon: uploadingImage
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.photo_camera_outlined),
-                    label: Text(uploadingImage ? 'Uploading' : 'Take photo'),
+                    onPressed: busy || submittingReview ? null : _captureImage,
+                    icon: const Icon(Icons.photo_camera_outlined),
+                    label: const Text('Take photo'),
                   ),
               ],
             ),
             const SizedBox(height: 12),
-            if (snapshot.connectionState != ConnectionState.done)
+            if (snapshot.connectionState != ConnectionState.done &&
+                pendingImages.isEmpty)
               const SizedBox(
                 height: 180,
                 child: LoadingView(message: 'Loading images'),
@@ -156,7 +128,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 message: snapshot.error.toString(),
                 onRetry: _reloadImages,
               )
-            else if (loadedImages.isEmpty)
+            else if (loadedImages.isEmpty && pendingImages.isEmpty)
               const SizedBox(
                 height: 180,
                 child: EmptyView(
@@ -181,6 +153,15 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
                     children: [
+                      for (var index = 0; index < pendingImages.length; index++)
+                        _PendingImageTile(
+                          bytes: pendingImages[index],
+                          submitting: submittingReview,
+                          onPreview: () =>
+                              _previewPendingImage(pendingImages[index]),
+                          onRemove: () =>
+                              setState(() => pendingImages.removeAt(index)),
+                        ),
                       for (final image in loadedImages)
                         _TaskImageTile(
                           image: image,
@@ -210,9 +191,20 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             const SizedBox(height: 20),
             if (!isAdmin)
               FilledButton.icon(
-                onPressed: canSubmit && !busy ? _submitReview : null,
-                icon: const Icon(Icons.send_outlined),
-                label: const Text('Submit for review'),
+                onPressed: canSubmit && !busy && !submittingReview
+                    ? () => _submitReview(loadedImages.length)
+                    : null,
+                icon: submittingReview
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send_outlined),
+                label: Text(
+                  submittingReview
+                      ? 'Submitting in background'
+                      : 'Submit for review',
+                ),
               ),
             if (isAdmin)
               FilledButton.icon(
@@ -229,40 +221,15 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   Future<void> _captureImage() async {
     final bytes = await CameraCaptureWidget.show(context);
     if (bytes == null) return;
-    setState(() {
-      busy = true;
-      uploadingImage = true;
-      error = null;
-      success = null;
-    });
-    try {
-      if (bytes.isEmpty) {
-        setState(() => error = 'The captured photo is empty. Retake it.');
-        return;
-      }
-      final loadedImages = await images;
-      await TaskImagesApi(widget.authController.apiClient).upload(
-        task.id,
-        TaskImage(
-          id: 0,
-          order: loadedImages.length + 1,
-          imageData: base64Encode(bytes),
-        ),
-      );
-      task = await TasksApi(widget.authController.apiClient).task(task.id);
-      widget.onTaskChanged();
-      if (mounted) {
-        setState(() => success = 'Photo uploaded successfully.');
-      }
-      _reloadImages();
-    } catch (e) {
-      setState(() => error = e.toString());
-    } finally {
-      setState(() {
-        busy = false;
-        uploadingImage = false;
-      });
+    if (bytes.isEmpty) {
+      setState(() => error = 'The captured photo is empty. Retake it.');
+      return;
     }
+    setState(() {
+      pendingImages.add(bytes);
+      error = null;
+      success = 'Photo ready. It will upload when you submit the review.';
+    });
   }
 
   Future<void> _confirmRemoveImage(TaskImage image) async {
@@ -334,9 +301,109 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     );
   }
 
-  Future<void> _submitReview() async => _transition(
-    () => TasksApi(widget.authController.apiClient).submitReview(task.id),
-  );
+  Future<void> _previewPendingImage(Uint8List bytes) {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(20),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900, maxHeight: 720),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  tooltip: 'Close',
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: InteractiveViewer(
+                    child: AspectRatio(
+                      aspectRatio: 4 / 3,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.memory(bytes, fit: BoxFit.contain),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _submitReview(int uploadedImageCount) {
+    final imagesToUpload = List<Uint8List>.from(pendingImages);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() {
+      submittingReview = true;
+      error = null;
+      success =
+          'Review submission started. You will be notified when it is done.';
+    });
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Review submission started.')),
+    );
+    unawaited(
+      _submitReviewInBackground(imagesToUpload, uploadedImageCount, messenger),
+    );
+  }
+
+  Future<void> _submitReviewInBackground(
+    List<Uint8List> imagesToUpload,
+    int uploadedImageCount,
+    ScaffoldMessengerState messenger,
+  ) async {
+    try {
+      final imageApi = TaskImagesApi(widget.authController.apiClient);
+      for (var index = 0; index < imagesToUpload.length; index++) {
+        await imageApi.upload(
+          task.id,
+          TaskImage(
+            id: 0,
+            order: uploadedImageCount + index + 1,
+            imageData: base64Encode(imagesToUpload[index]),
+          ),
+        );
+      }
+      await TasksApi(widget.authController.apiClient).submitReview(task.id);
+      final updatedTask = await TasksApi(
+        widget.authController.apiClient,
+      ).task(task.id);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Review submitted successfully.')),
+      );
+      if (mounted) {
+        setState(() {
+          task = updatedTask;
+          pendingImages.clear();
+          submittingReview = false;
+          success = 'Review submitted successfully.';
+        });
+        widget.onTaskChanged();
+        _reloadImages();
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Review submission failed: $e')),
+      );
+      if (mounted) {
+        setState(() {
+          submittingReview = false;
+          error = e.toString();
+        });
+      }
+    }
+  }
+
   Future<void> _completeReview() async => _transition(
     () => TasksApi(widget.authController.apiClient).completeReview(task.id),
   );
@@ -421,28 +488,71 @@ class _TaskImageTile extends StatelessWidget {
   }
 }
 
-class _InfoTile extends StatelessWidget {
-  const _InfoTile({
-    required this.icon,
-    required this.label,
-    required this.value,
+class _PendingImageTile extends StatelessWidget {
+  const _PendingImageTile({
+    required this.bytes,
+    required this.submitting,
+    required this.onPreview,
+    required this.onRemove,
   });
-  final IconData icon;
-  final String label;
-  final String value;
+
+  final Uint8List bytes;
+  final bool submitting;
+  final VoidCallback onPreview;
+  final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 260,
-      child: Card(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        child: ListTile(
-          leading: Icon(icon),
-          title: Text(label),
-          subtitle: Text(value, maxLines: 2, overflow: TextOverflow.ellipsis),
+    final scheme = Theme.of(context).colorScheme;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onPreview,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.memory(bytes, fit: BoxFit.cover),
+            ),
+          ),
         ),
-      ),
+        Positioned(
+          left: 8,
+          top: 8,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: scheme.primaryContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Text(
+                'Pending',
+                style: TextStyle(
+                  color: scheme.onPrimaryContainer,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: Material(
+            color: scheme.errorContainer,
+            borderRadius: BorderRadius.circular(8),
+            child: IconButton(
+              tooltip: 'Remove pending photo',
+              onPressed: submitting ? null : onRemove,
+              icon: Icon(Icons.delete_outline, color: scheme.onErrorContainer),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
