@@ -35,7 +35,7 @@ jobs:
 
       - name: Build web
         run: >
-          flutter build web --release --base-href /Flutter_frontend/
+          flutter build web --release --base-href /
           --dart-define=APP_ENV=production
           --dart-define=API_BASE_URL=https://api.karakheti.de
           --dart-define=KEYCLOAK_URL=https://auth.karakheti.de
