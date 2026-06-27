@@ -311,7 +311,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             id: 0,
                             title: title.text.trim(),
                             description: description.text.trim(),
-                            status: TaskStatus.open,
+                            status: TaskStatus.inProgress,
                             assignedTo: worker!.id,
                             assignedBy: widget.authController.user!.id,
                           ),

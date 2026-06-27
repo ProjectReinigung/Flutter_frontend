@@ -4,9 +4,14 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 class TaskImagePreview extends StatelessWidget {
-  const TaskImagePreview({super.key, required this.base64Data});
+  const TaskImagePreview({
+    super.key,
+    required this.base64Data,
+    this.fit = BoxFit.cover,
+  });
 
   final String base64Data;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +23,7 @@ class TaskImagePreview extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       child: Image.memory(
         bytes,
-        fit: BoxFit.cover,
+        fit: fit,
         frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
           if (wasSynchronouslyLoaded || frame != null) return child;
           return const _ImageLoading();

@@ -315,11 +315,15 @@ class _LoginScreenState extends State<LoginScreen> {
   String _friendlyError(Object error) {
     final message = _errorText(error);
     final lower = message.toLowerCase();
+    if (lower.contains('invalid user credentials') ||
+        lower.contains('invalid username or password') ||
+        lower.contains('bad credentials')) {
+      return 'Username or password is incorrect.';
+    }
     if (lower.contains('account is not fully set up') ||
         lower.contains('account setup') ||
         lower.contains('required action') ||
-        lower.contains('temporary') ||
-        lower.contains('invalid_grant')) {
+        lower.contains('temporary')) {
       return 'This password was not accepted. If it is a temporary password, set a new password to continue.';
     }
     if (message.contains('XMLHttpRequest') ||
@@ -330,12 +334,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   bool _isTemporaryPasswordError(Object error) {
-    final lower = error.toString().toLowerCase();
+    final lower = _errorText(error).toLowerCase();
     return lower.contains('account is not fully set up') ||
         lower.contains('account setup') ||
         lower.contains('required action') ||
-        lower.contains('temporary') ||
-        lower.contains('invalid_grant');
+        lower.contains('temporary');
   }
 
   String _errorText(Object error) {
